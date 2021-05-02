@@ -34,9 +34,10 @@ function lookup(phoneNumber, sid, auth) {
  * @param {string} message - text to send via SMS.
  * @param {string} sid TwilioAccountSID
  * @param {string} auth Twilio Authentication Token
+ * @param {string} twilNum Twilio Phone Number
  * @return {string} status of SMS sent (successful sent date or error encountered).
  */
-function sendSms(phoneNumber, message, sid, auth) {
+function sendSms(phoneNumber, message, sid, auth, twilNum) {
   var twilioUrl = 'https://api.twilio.com/2010-04-01/Accounts/' + sid + '/Messages.json';
 
   try {
@@ -48,11 +49,36 @@ function sendSms(phoneNumber, message, sid, auth) {
       payload: {
         To: phoneNumber.toString(),
         Body: message,
-        From: TWILIO_SMS_NUMBER,
+        From: twilNum,
       },
     });
     return 'sent: ' + new Date();
   } catch (err) {
     return 'error: ' + err;
   }
+}
+
+/**
+ * This will return the latest text that was sent as well as the phone number that sent it
+ * @param {string} twilNum phone number that is recieving inbound texts
+ * @param {string} sid twilio account SID
+ * @param {string} auth twilio account authorization token
+ * @returns {string[]}
+ */
+function GetLatestInboundText(twilNum, sid, auth){
+  var toPhoneNumber = twilNum;
+  var numberToRetrieve = 1;
+  var options = {
+    "method" : "get"
+  };
+  options.headers = {
+    "Authorization" : "Basic " + Utilities.base64Encode(sid + ":" + auth)
+  };
+  var url="https://api.twilio.com/2010-04-01/Accounts/" + sid + "/Messages.json?To=" + toPhoneNumber + "&PageSize=" + numberToRetrieve;
+  var response = UrlFetchApp.fetch(url,options);
+  var dataAll = JSON.parse(response.getContentText());
+  var sender = dataAll.messages[0].from;
+  var body = dataAll.messages[0].body
+  var result = [sender, body];
+  return result
 }
